@@ -8,13 +8,22 @@ import numpy as np
 import statsmodels.tsa.stattools as tsa
 import pprint
 
+def download_stock_data(file_name, company_code,  dateTime1, dateTime2):
+	#start = datetime.datetime(year1,month1,date1)
+	#end = datetime.datetime(year2,month2,date2)
+	print file_name, company_code, dateTime1, dateTime2
+	df = web.DataReader("%s.KS" % (company_code), "yahoo", dateTime1,dateTime2)
+	df.to_pickle(file_name)
+	return df
+
+'''
 def download_stock_data(file_name, company_code, year1, month1, date1, year2, month2, date2):
 	start = datetime.datetime(year1,month1,date1)
 	end = datetime.datetime(year2,month2,date2)
 	df = web.DataReader("%s.KS" % (company_code), "yahoo", start, end)
 	df.to_pickle(file_name)
 	return df
-
+'''
 def load_stock_data(file_name):
 	df = pd.read_pickle(file_name)
 	return df
@@ -114,7 +123,7 @@ def make_dataset( df, time_lags =5):
 	df_lag["Close"] = df["Close"]
 	df_lag["Volume"] = df["Volume"]
 	df_lag["Close_Lag%s" % str(time_lags)] =df["Close"].shift(time_lags)
-	df_lag["Close_Lag%s_Change" % str(time_lags)] = df_lag["Close_Lag%s" % str(time_lags)]pct_change() *100.0
+	df_lag["Close_Lag%s_Change" % str(time_lags)] = df_lag["Close_Lag%s" % str(time_lags)].pct_change() *100.0
 	df_lag["Volume_Lag%s" % str(time_lags)] = df["Volume"].shift(time_lags)
 	df_lag["Volume_Lag%s_Change" % str(time_lags)] = df_lag["Volume_Lag%s" % str(time_lags)].pct_change() *100.0
 
