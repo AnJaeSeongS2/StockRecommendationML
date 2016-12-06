@@ -24,12 +24,14 @@ print df.index.get_level_values("Date")
 
 dr = DataReader()
 testcodes =dr.loadCodes(1,10)
-print testcodes
+print testcodes['Code']
 for a_index in range(testcodes.shape[0]):
-	print testcodes.iloc[a_index]['code']
-	print testcodes.iloc[a_index]['company']
+	print testcodes.iloc[a_index]['Code']
+	print testcodes.iloc[a_index]['Company']
 
-	
+
+testPrices = dr.loadPrices("005110",0)
+print testPrices['Close']
 
 
 
