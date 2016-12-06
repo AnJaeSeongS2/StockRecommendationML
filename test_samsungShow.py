@@ -1,4 +1,5 @@
 import pandas as pd
+from  DataReadWriter import DataReader
 #print pd.read_pickle('samsung2.data')['Close'].pct_change()
 df =pd.read_pickle('samsung2.data')['Close']
 print df
@@ -11,10 +12,27 @@ def testSplit(df, input_column_array):
 	print df2
 	print df2.index[0]
 	print df2.shape[0]
-	print df2.columns()
-	
 
 testSplit(df, ["Close","Adj_Close"])
+
+
+print df.index.get_level_values("Date")
+print df.loc["2015-01-05"]
+print df.iloc[1]
+print df.index.get_level_values("Date")
+
+
+dr = DataReader()
+testcodes =dr.loadCodes(1,10)
+print testcodes
+for a_index in range(testcodes.shape[0]):
+	print testcodes.iloc[a_index]['code']
+	print testcodes.iloc[a_index]['company']
+
+	
+
+
+
 
 #print pd.read_pickle('samsung2.data')['Close'].shift(5)
 

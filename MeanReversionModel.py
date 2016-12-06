@@ -30,22 +30,7 @@ class MeanReversionModel:
 		adf_result = ts.adfuller(df)
 		critical_values = adf_result[4]
 		return adf_result[0], critical_values['1%'], critical_values['5%'], critical_values['10%']
-	# 평균회기 모델 확인용
-	# I recommend input (n**2) at lags_count
-	def calcHurstExponent(self, df, lags_count =100):
-		lags = range(1, lags_count)
-		ts = np.log(df)
-		# calculate array of the variances of the lagged differences	
-		tau = [np.sqrt(np.std(np.subtract(ts[lag:], ts[:-lag]))) for lag in lags]
 
-		#numpy.polyfit( weight, value, n차방정식) n==1 -> return:  [ 기울기, y절편]
-		#print np.log(lags)
-		#print 'asdfadsfadsf'
-		#print np.log(tau)
-		poly = np.polyfit(np.log(lags), np.log(tau), 1)
-		result = poly[0]*2.0
-		return result
-	
 	# 아래calcHurstExpoent2는사용하지 마시오.  수학적 계산상으로 문제가 없는데, 기대 이하의 이상한 값만 나와데서 개발 포기	
 	def calcHurstExponent2(self, df, lags_count = 100):
 		lags = range(1, lags_count)
@@ -83,7 +68,23 @@ class MeanReversionModel:
 		print np.log(R/s)
 		poly = np.polyfit(np.log(lags), np.log(R/s), 1)
 		return poly[0]
+	
+	# 평균회기 모델 확인용
+	# I recommend input (n**2) at lags_count
+	def calcHurstExponent(self, df, lags_count =100):
+		lags = range(1, lags_count)
+		ts = np.log(df)
+		# calculate array of the variances of the lagged differences	
+		tau = [np.sqrt(np.std(np.subtract(ts[lag:], ts[:-lag]))) for lag in lags]
 
+		#numpy.polyfit( weight, value, n차방정식) n==1 -> return:  [ 기울기, y절편]
+		#print np.log(lags)
+		#print 'asdfadsfadsf'
+		#print np.log(tau)
+		poly = np.polyfit(np.log(lags), np.log(tau), 1)
+		result = poly[0]*2.0
+		return result
+	
 	# 평균회기 모델 확인용
 	def calcHalfLife(self, df):
 		price = pd.Series(df)

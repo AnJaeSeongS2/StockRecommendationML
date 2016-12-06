@@ -6,7 +6,6 @@ import sys
 import StockPrice
 import datetime
 
-
 def updateCodesToDB():
 	try:
 		# INSERT
