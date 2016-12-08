@@ -3,11 +3,12 @@
 import pandas as pd
 import statsmodels.tsa.stattools as tsa
 import numpy as np
-
+import datetime
 
 HOLD = 'HOLD'
 SHORT = 'SHORT'
 LONG = 'LONG'
+DELETED = "DELETED"
 
 class MeanReversionModel:
 	#Naming Mangling 으로 외부에서 파악 불가능하게 함.
@@ -25,9 +26,10 @@ class MeanReversionModel:
 	# 평균회기 모델 확인용
 	# ADF : Augmented Dickey-Fuller Test
 	# df : DataFrame  ex: df_samsung["Close"]
-	# return test Statistic, critical_values 1,5,10%
+	# return (adf_statistic, adf_critical_values 1,5,10%)
+	# Based on MacKinnon (2010) ADF
 	def calcADF(self, df):
-		adf_result = ts.adfuller(df)
+		adf_result = tsa.adfuller(df)
 		critical_values = adf_result[4]
 		return adf_result[0], critical_values['1%'], critical_values['5%'], critical_values['10%']
 
@@ -76,7 +78,7 @@ class MeanReversionModel:
 		ts = np.log(df)
 		# calculate array of the variances of the lagged differences	
 		tau = [np.sqrt(np.std(np.subtract(ts[lag:], ts[:-lag]))) for lag in lags]
-
+		
 		#numpy.polyfit( weight, value, n차방정식) n==1 -> return:  [ 기울기, y절편]
 		#print np.log(lags)
 		#print 'asdfadsfadsf'
@@ -100,20 +102,40 @@ class MeanReversionModel:
 		half_life = (-1*np.log(2)/beta)
 		return half_life
 
-	#row_index : 해당 시점에서의 determine position
+	#row_index : 해당 시점에서의 determine direction
 	# 이 함수는 사용하기 앞서 해당 df가 평균회기모델이라고 판단되었을 때만 사용할 것.
-	def determinePosition(self, df, column,row_index, verbose=False):
-		start_index = '2000-01-01'
-		current_price = df.loc[row_index, column]
-		#rolling_mean : 이동평균 window: 이동평균 낼 범위 ex window=100 -> 100개의 값으로 계산.
-		df_moving_average = pd.rolling_mean(df.loc[start_index:row_index,column], window= self.window_size)
-		df_moving_average_std = pd.rolling_std(df.loc[start_index:row_index,column], window=self.window_size)
-		moving_average = df_moving_average[row_index]
-		moving_average_std = df_moving_average_std[row_index]
+	def determineDirection(self, df, column,row_date, verbose=False):
+		row_index = 0
+		row_datetime = datetime.datetime.strptime(row_date, "%Y-%m-%d")
+		
+		for a in range(len(df)):
+			if df['date'].iloc[row_index] >= row_datetime :
+				if df['date'].iloc[row_index] >row_datetime:
+						row_index-=1
+				break
+			row_index+=1
+		
+		if( row_index >= len(df)):
+			row_index = len(df)-1
+			return DELETED
+
+	
+		current_price = df.iloc[row_index][column]
+			
+		#rolling_mean : 이동평균 window: 이동평균 낼 범위 ex window=5 -> 5개의 값으로 계산.
+		df_moving_average = df.iloc[0:row_index+1][column].rolling(window= self.window_size).mean()
+		df_moving_average_std = df.iloc[0:row_index+1][column].rolling(window= self.window_size).std()
+		# nan값 가진 row는 제거
+		df_moving_average= df_moving_average[df_moving_average.isnull() != True]
+		df_moving_average_std= df_moving_average_std[(df_moving_average_std.isnull()!=True)]
+		
+		moving_average = df_moving_average.iloc[row_index-self.window_size+1]
+		moving_average_std = df_moving_average_std.iloc[row_index-self.window_size+1]
+	
 		price_arbitrage = current_price - moving_average
 
 		if verbose:
-			print "diff=%s, price=%s, moving_average=%s, moving_average_std=%s, price_arbitrage=%s"%(price_arbitrage, current_price, moving_average, moving_average_std, price_arbitrage)
+			print "diff=%s, current_price=%s, moving_average=%s, moving_average_std=%s, price_arbitrage=%s"%(price_arbitrage, current_price, moving_average, moving_average_std, price_arbitrage)
 
 		# 현재 위치가 threshold*표준편차 범위 바깥에 있는지 확인. 후에 주가방향예측.. 	
 		if abs(price_arbitrage) > moving_average_std*self.threshold:

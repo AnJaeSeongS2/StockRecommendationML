@@ -32,7 +32,7 @@ class DataReader:
 		return cls.__insCount
 
 	
-	#return df_codes
+	#return dataFrame_codes from db
 	def loadCodes(self,market_type, limit =0):
 		sqlGetCode = "select * from codes"	
 		sqlGetCode += " where market_type = %s"%market_type
@@ -43,14 +43,13 @@ class DataReader:
 		self.cursor.execute(sqlGetCode)
 		rows = self.cursor.fetchall()
         #self.db.commit()
-		seriesCode = pd.Series(name='Code')
-		seriesCompany = pd.Series(name= 'Company')
+		seriesCode = pd.Series(name='code')
+		seriesCompany = pd.Series(name= 'company')
 		
-		a_index = 0
-		for row in rows:
+		for a_index in range(0,len(rows)):
 			seriesCode = seriesCode.set_value(a_index,rows[a_index][2])
 			seriesCompany = seriesCompany.set_value(a_index,rows[a_index][5])
-			a_index+=1
+		
 		
 		#self.db.close()	
 		
@@ -58,31 +57,29 @@ class DataReader:
 		return pd.concat([seriesCode,seriesCompany], axis=1)
 		
 	
-	#return df_prices
+	#return dataFrame_prices from db
 	def loadPrices(self, code, limit=0):
 		sqlGetCode = "select * from prices"	
 		sqlGetCode += " where code = %s"%code
 		if( limit !=0) :
 			sqlGetCode += " limit %s;"%limit
 		else :
-			sqlGetCode += ";"
-
-		print sqlGetCode
+			sqlGetCode += ";"	
 		self.cursor.execute(sqlGetCode)
 		rows = self.cursor.fetchall()
         #self.db.commit()
 		
-		seriesDate = pd.Series(name='Date')
-		seriesCode = pd.Series(name= 'Code')
-		seriesOpen = pd.Series(name='Open')
-		seriesClose = pd.Series(name= 'Close')
-		seriesHigh = pd.Series(name='High')
-		seriesLow = pd.Series(name= 'Low')
-		seriesAdjClose = pd.Series(name='Adj_Close')
-		seriesVolume = pd.Series(name= 'Volume')
+		seriesDate = pd.Series(name='date')
+		seriesCode = pd.Series(name= 'code')
+		seriesOpen = pd.Series(name='price_open')
+		seriesClose = pd.Series(name= 'price_close')
+		seriesHigh = pd.Series(name='price_high')
+		seriesLow = pd.Series(name= 'price_low')
+		seriesAdjClose = pd.Series(name='price_adj_close')
+		seriesVolume = pd.Series(name= 'volume')
 
-		a_index = 0
-		for row in rows:
+	
+		for a_index in range(0,len(rows)):
 			seriesDate = seriesDate.set_value(a_index,rows[a_index][2])
 			seriesCode = seriesCode.set_value(a_index,rows[a_index][3])
 			seriesOpen = seriesOpen.set_value(a_index,rows[a_index][4])
@@ -91,9 +88,10 @@ class DataReader:
 			seriesHigh = seriesHigh.set_value(a_index,rows[a_index][7])
 			seriesAdjClose = seriesAdjClose.set_value(a_index,rows[a_index][8])
 			seriesVolume = seriesVolume.set_value(a_index,rows[a_index][9])
-			a_index+=1
+		
 		#print seriesCode.to_frame().iloc[0]['code']
-		#self.db.close()	
+		#self.db.close()
+	
 		return pd.concat([seriesDate, seriesCode, seriesOpen, seriesClose, seriesLow, seriesHigh, seriesAdjClose, seriesVolume], axis=1)
 		
 		
