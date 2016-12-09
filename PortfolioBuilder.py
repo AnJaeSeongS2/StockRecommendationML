@@ -141,12 +141,13 @@ class PortfolioBuilder:
 		
 		count_true = 0
 		count_false = 0
-		print "df_directions              asdfasdfadsf"
+		print target_column
 		print df_directions
-		df_prices = self.dbreader.loadPrices(df_directions.iloc[0]['code']) #어차피 모든 녀석 code가 같다.
+		
+		df_prices = self.dbreader.loadPrices(df_directions.iloc[0]['code'])
 		
 		date_list = df_directions['price_date'].values.tolist()
-		print date_list
+		#print date_list
 		#index_list =df_directions['price_date'][df_directions['price_date']== '2015-11-20'].index.tolist()
 
 		for a_date_long in date_list:
@@ -154,29 +155,44 @@ class PortfolioBuilder:
 			a_converted_date_long = a_date_long/1000000000		
 			a_datetime =datetime.datetime.fromtimestamp(a_converted_date_long)
 			a_date = a_datetime.strftime("%Y-%m-%d")
-			
-			i = df_prices['date'][df_prices['date']== a_date].index.tolist()[0]
-			i_direction = df_directions['price_date'][df_directions['price_date']==a_date].index.tolist()[0]
-			print i
-			print df_prices.iloc[i]['date']
-			print i_direction
+			do_flag = True;
+			print df_prices['date']
+			for index in range(0,len(df_prices['date'])):
+				if(df_prices['date'] == a_date):
+					break;
+				if(index == len(df_prces['date'])-1):
+					do_flag= False;
+			if(do_flag):
+				i = df_prices['date'][df_prices['date']== a_date].index.tolist()[0]
+				i_direction = df_directions['price_date'][df_directions['price_date']==a_date].index.tolist()[0]
+				#print i
+				#print df_prices.iloc[i]['date']
+				#print i_direction
 
-			if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] > 0 and df_directions.iloc[i_direction]['direction']=='HOLD' :
-				count_true+=1
-			if  df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] <= 0 and df_directions.iloc[i_direction]['direction']=='HOLD' :				
-				count_false+=1
-			if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] >= 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
-				count_false+=1
-			if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] < 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
-				count_true+=1
-	
-		print "count_true : %s, count_false : %s"%(count_true, count_false)
+				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] > 0 and df_directions.iloc[i_direction]['direction']=='LONG' :
+					count_true+=1
+				if  df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] <= 0 and df_directions.iloc[i_direction]['direction']=='LONG' :				
+					count_false+=1
+				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] >= 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
+					count_false+=1
+				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] < 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
+					count_true+=1
+
+
+		if( count_true+count_false >0):	
+		
+			print " Correct Ratio: %s, all_count: %s,  code: %s, target_column: %s "%(round(float(count_true)/(count_true+count_false),2) , (count_true+count_false) ,  df_directions.iloc[0]['code'],target_column )
+		else :
+			print " Correct Ratio: %s, all_count: %s,  code: %s, target_column: %s "%(round(float(count_true)/1,2) , (count_true+count_false) ,  df_directions.iloc[0]['code'],target_column )
+		
+		return df_directions.iloc[0]['code'], df_directions.iloc[0]['company'], target_column, count_true, count_false, count_all
+
 		#fig = plt.plot()
 
 		#df_price[target_column].plot()
 		#plt.show()
 		
-		print "show End"
+		#print "show End"
 		
 
 '''

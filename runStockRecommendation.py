@@ -83,16 +83,19 @@ try:
 
 
 	#해당날짜의 평균회귀 성향 확인
-	current_date = '2015-11-20'
-	target_column = 'price_close'
+	current_date = '2015-11-24'
+	#start_date = '2016-01-01'
+	end_date = '2016-11-24'
 
+	target_column = 'price_close'
+	limit = 0
 	#get index from dataframe with column, value
 	#print dr.loadDirectionsByDate(current_date)['price_date'][dr.loadDirectionsByDate(current_date)['price_date'] == '2015-11-20'].index.tolist()[0]
 
 	portfolio = PortfolioBuilder()
 	print "start Mean Reversion Test"
-	df_mean_reversion = portfolio.doMeanReversionTest('price_close',current_date,100,30)
-
+	df_mean_reversion = portfolio.doMeanReversionTest('price_close',current_date,100,limit)
+	#평균회기 성향 순위 매김
 	df_rank = portfolio.rankMeanReversion(df_mean_reversion)
 	mean_reversion_codes = portfolio.buildUniverse(df_rank,'rank',0.8)
 	#해당날짜의 평균회귀 성향이 높은 주식들만 방향 예측
@@ -110,10 +113,31 @@ try:
 	dw.updateDirectionsToDB(df_mean_reversion_direction)
 
 
-	#show Hit Ratio
+	#show Hit Ratio and save Correct Ratio, count True,False,All
+	codes = dr.loadCodes(1,limit)	
+	seriesCode = pd.Series(name= 'code')
+	seriesCompany = pd.Series(name='company')
+	seriesTargetColumn = pd.Series(name= 'target_column')
+	seriesCountTrue = pd.Series(name='count_true')
+	seriesCountFalse = pd.Series(name='count_false')
+	seriesCountAll = pd.Series(name='count_all')
+	for index in range(len(codes)):
+		#show Hit Ratio
+		df_direction = dr.loadDirectionsByCode(codes.iloc[index]['code'] )
+		if (df_direction.empty ==False) :
 
-	portfolio.showHitRatio(dr.loadDirectionsByCode(103140),target_column)
-
+			c_code, c_company, c_target_column,c_count_true,c_count_fall,c_count_all =portfolio.showHitRatio(df_direction,target_column)
+			#맞는 날짜값이 없으면 c_code=0으로 돌려줌	
+			if( c_code != 0):
+				seriesCode = seriesCode.set_value(c_code)
+				seriesCompany= seriesCompany.set_value(c_company)
+				seriesTargetColumn = seriesTargetColumn.set_value(c_target_column)
+				seriesCountTrue = seriesCountTrue.set_value(c_count_true)
+				seriesCountFalse = seriesCountFalse.set_value(c_count_false)
+				seriesCountAll = seriesCountAll.set_value(c_count_all)
+				
+	df_count = pd.concat([seriesCode, seriesCompany,seriesTargetColumn, seriesCountTrue, seriesCountFalse, seriesCountAll],axis=1)
+	dw.updatePredictionToDB(df_count)
 
 
 
@@ -130,5 +154,7 @@ try:
 
 finally:
 	end_time = time.time()- start_time
-	print "---------------- 수행 시간 ----------------"
-	print time.strftime("%H시간: %M분 :%S초 소요",end_time)
+	print "---------------- 수행 시간(초)----------------"
+	print end_time
+
+	#print time.strftime("%s시간: %s분 :%s초 소요",round(end_time,0)/3600 , round(end_time,0)/60, round(end_time,0))

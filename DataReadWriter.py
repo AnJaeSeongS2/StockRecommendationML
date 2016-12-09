@@ -146,6 +146,37 @@ class DataReader:
 			seriesDirection = seriesDirection.set_value(a_index,rows[a_index][5])
 			
 		return pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection],axis=1)
+
+	def loadTopCountPrediction(self, limit=0):
+		sqlGetCount = "select * from countPrediction"
+		sqlGetCount += " order by count_all DESC"
+		if( limit != 0):
+			sqlGetCount += " limit %s;"%limit
+		else :
+			sqlGetCount += ";"
+		self.cursor.execute(sqlGetCount)
+		rows = self.cursor.fetchall()
+        #self.db.commit()
+		
+		
+		seriesCode = pd.Series(name= 'code')
+		seriesCompany = pd.Series(name='company')
+		seriesTargetColumn = pd.Series(name= 'target_column')
+		seriesCountTrue = pd.Series(name='count_true')
+		seriesCountFalse = pd.Series(name='count_false')
+		seriesCountAll = pd.Series(name='count_all')
+		
+		for a_index in range(0,len(rows)):
+			seriesCode = seriesCode.set_value(a_index,rows[a_index][1])
+			seriesCompany= seriesCompany.set_value(a_index,rows[a_index][2])
+			seriesTargetColumn = seriesTargetColumn.set_value(a_index,rows[a_index][3])
+			seriesCountTrue = seriesCountTrue.set_value(a_index,rows[a_index][4])
+			seriesCountFalse = seriesCountFalse.set_value(a_index,rows[a_index][5])
+			seriesCountAll = seriesCountAll.set_value(a_index,rows[a_index][6])
+				
+		return pd.concat([ seriesCode, seriesCompany, seriesTargetColumn, seriesCountTrue, seriesCountFalse, seriesCountAll],axis=1)
+
+	
 		
 class DataWriter:
 	db = 0
@@ -250,9 +281,29 @@ class DataWriter:
 				sqlAddDirection = """insert into directions (last_update, price_date, code, company, target_column, direction) values (now(), %s, %s, %s, %s , %s) ON DUPLICATE KEY UPDATE last_update = now(), target_column= %s, direction = %s"""
 				dataDirection = ( (df_directions.iloc[i]['price_date']+' 00:00:00'), df_directions.iloc[i]['code'], df_directions.iloc[i]['company'],df_directions.iloc[i]['target_column'], df_directions.iloc[i]['direction'] ,df_directions.iloc[i]['target_column'], df_directions.iloc[i]['direction']  )
 				print dataDirection
-				self.cursor.execute(sqlAddDirection, dataDirection)
-				self.db.commit()
+				if( (df_directions.iloc[i]['direction'] == 'SHORT') or (df_directions.iloc[i]['direction'] =='LONG')):
+					self.cursor.execute(sqlAddDirection, dataDirection)
+					self.db.commit()
+
 				print "... %s of %s : %s 's direction data Committed to DB" % (i+1, df_directions.shape[0], df_directions.iloc[i]['company'])
+		
+			self.db.commit()
+		finally:
+			print "End data Crwaling"
+		
+
+
+	def updatePredictionToDB(self,df_prediction):
+		try:
+			# INSERT
+			#DB로 전송
+			for i in range(0,df_prediction.shape[0]):
+				sqlAddPrediction = """insert into countPrediction (last_update,  code, company, target_column, count_true, count_false, count_all) values (now(), %s, %s, %s , %s,%s,%s) ON DUPLICATE KEY UPDATE last_update = now(), target_column= %s, count_true = %s, count_false = %s , count_all = %s"""
+				dataPrediction = ( df_prediction.iloc[i]['code'], df_prediction.iloc[i]['company'],df_prediction.iloc[i]['target_column'], df_prediction.iloc[i]['count_true'] ,df_prediction.iloc[i]['count_false'], df_prediction.iloc[i]['count_all'] ,df_prediction.iloc[i]['target_column'], df_prediction.iloc[i]['count_true'] ,df_prediction.iloc[i]['count_false'], df_prediction.iloc[i]['count_all']  )
+				
+				self.cursor.execute(sqlAddPrediction, dataPrediction)
+				self.db.commit()
+				print "... %s of %s : %s 's count Prediction data Committed to DB" % (i+1, df_prediction.shape[0], df_prediction.iloc[i]['company'])
 		
 			self.db.commit()
 		finally:

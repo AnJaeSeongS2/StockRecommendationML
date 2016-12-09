@@ -13,7 +13,7 @@ class MeanReversionModel:
 	#Naming Mangling 으로 외부에서 파악 불가능하게 함.
 	__insCount = 0
 	window_size = 5	
-	threshold = 2
+	threshold = 1
 	
 	def __init__(self):
 		MeanReversionModel.__insCount +=1
