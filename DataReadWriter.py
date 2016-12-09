@@ -93,11 +93,10 @@ class DataReader:
 	
 		return pd.concat([seriesDate, seriesCode, seriesOpen, seriesClose, seriesLow, seriesHigh, seriesAdjClose, seriesVolume], axis=1)
 		
-	
 	#return dataFrame_directions from db
-	def loadDirections(self, date, limit=0):
+	def loadDirectionsByCode(self, code, limit=0):
 		sqlGetCode = "select * from directions"	
-		sqlGetCode += " where price_date = \"%s\""%(date+" 00:00:00")
+		sqlGetCode += " where code = %s order by price_date desc"%(code)
 		if( limit !=0) :
 			sqlGetCode += " limit %s;"%limit
 		else :
@@ -106,7 +105,7 @@ class DataReader:
 		rows = self.cursor.fetchall()
         #self.db.commit()
 		
-		seriesDate = pd.Series(name='date')
+		seriesDate = pd.Series(name='price_date')
 		seriesCode = pd.Series(name= 'code')
 		seriesCompany = pd.Series(name='company')
 		seriesTargetColumn = pd.Series(name= 'target_column')
@@ -118,10 +117,34 @@ class DataReader:
 			seriesCompany= seriesCompany.set_value(a_index,rows[a_index][3])
 			seriesTargetColumn = seriesTargetColumn.set_value(a_index,rows[a_index][4])
 			seriesDirection = seriesDirection.set_value(a_index,rows[a_index][5])
+			
+		return pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection],axis=1)
 		
-		#print seriesCode.to_frame().iloc[0]['code']
-		#self.db.close()
-	
+	#return dataFrame_directions from db
+	def loadDirectionsByDate(self, date, limit=0):
+		sqlGetCode = "select * from directions"	
+		sqlGetCode += " where price_date = \"%s\""%(date+" 00:00:00")
+		if( limit !=0) :
+			sqlGetCode += " limit %s;"%limit
+		else :
+			sqlGetCode += ";"
+		self.cursor.execute(sqlGetCode)
+		rows = self.cursor.fetchall()
+        #self.db.commit()
+		
+		seriesDate = pd.Series(name='price_date')
+		seriesCode = pd.Series(name= 'code')
+		seriesCompany = pd.Series(name='company')
+		seriesTargetColumn = pd.Series(name= 'target_column')
+		seriesDirection = pd.Series(name='direction')
+		
+		for a_index in range(0,len(rows)):
+			seriesDate = seriesDate.set_value(a_index,rows[a_index][1])
+			seriesCode = seriesCode.set_value(a_index,rows[a_index][2])
+			seriesCompany= seriesCompany.set_value(a_index,rows[a_index][3])
+			seriesTargetColumn = seriesTargetColumn.set_value(a_index,rows[a_index][4])
+			seriesDirection = seriesDirection.set_value(a_index,rows[a_index][5])
+			
 		return pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection],axis=1)
 		
 class DataWriter:

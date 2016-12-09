@@ -5,6 +5,10 @@ import pandas as pd
 from  DataReadWriter import DataReader, DataWriter
 from PortfolioBuilder import PortfolioBuilder
 import numpy as np
+import time
+import datetime
+
+'''
 #print pd.read_pickle('samsung2.data')['Close'].pct_change()
 df =pd.read_pickle('samsung2.data')
 #df =pd.read_pickle('samsung2.data')['Close']
@@ -14,6 +18,8 @@ df =pd.read_pickle('samsung2.data')
 #print df.index[df.shape[0]-1]
 print df['Close'].iloc[0]
 print df['Close']
+'''
+
 
 
 '''
@@ -65,38 +71,64 @@ print test_dict
 print 'adfadsfadsfadsfdsfasdfkjnasndflandslfnadslfmal;sdmf;aldsmf %s '%test_dict['a'][0]
 print pd.DataFrame(test_dict)
 '''
+#Long타입은 아래처럼 datetime으로 변환 가능.
+#print datetime.datetime.fromtimestamp(1447977600).strftime('%Y-%m-%d')
 
-portfolio = PortfolioBuilder()
-#해당날짜의 평균회귀 성향 확인
-current_date = '2015-11-20'
-target_column = 'price_close'
-df_mean_reversion = portfolio.doMeanReversionTest('price_close',current_date,100,10)
-df_rank = portfolio.rankMeanReversion(df_mean_reversion)
-mean_reversion_codes = portfolio.buildUniverse(df_rank,'rank',0.0)
-#해당날짜의 평균회귀 성향이 높은 주식들만 방향 예측
-mean_reversion_direction = {'price_date':[],'code':[],'company':[],'target_column':[],'direction':[]}
-dw = DataWriter()
-dr = DataReader()
-print dr.loadDirections(current_date)
+start_time = time.time()
+try:
 
-for index in range(len(mean_reversion_codes)):
-	mean_reversion_direction['price_date'].append(current_date)
-	mean_reversion_direction['code'].append(mean_reversion_codes['code'].iloc[index])
-	mean_reversion_direction['company'].append(mean_reversion_codes['company'].iloc[index])
-	mean_reversion_direction['target_column'].append(target_column)
-	mean_reversion_direction['direction'].append(portfolio.determineMeanReversionDirection(mean_reversion_codes['code'].iloc[index], target_column, current_date, verbose=True) )
+	dw = DataWriter()
+	dr = DataReader()
 
-	print 'price_date: %s, code: %s, company: %s, column: %s, direction: %s'%(mean_reversion_direction['price_date'][index], mean_reversion_direction['code'][index], mean_reversion_direction['company'][index], mean_reversion_direction['target_column'][index], mean_reversion_direction['direction'][index] )
-df_mean_reversion_direction = pd.DataFrame(mean_reversion_direction)
-dw.updateDirectionsToDB(df_mean_reversion_direction)
 
-'''
-testC = {'2010-01-04':'1234' ,'2011-01-01':'2345', '2013-02-02':'4444'}
-df_testC = pd.DataFrame(testC.items() , columns=['code','company'])
-print df_testC.loc[0]
-print df_testC['2010-01-04']
-print df_testC['2010-01-04':'2013-02-03']
-'''
 
-#print pd.read_pickle('samsung2.data')['Close'].shift(5)
+	#해당날짜의 평균회귀 성향 확인
+	current_date = '2015-11-20'
+	target_column = 'price_close'
 
+	#get index from dataframe with column, value
+	#print dr.loadDirectionsByDate(current_date)['price_date'][dr.loadDirectionsByDate(current_date)['price_date'] == '2015-11-20'].index.tolist()[0]
+
+	portfolio = PortfolioBuilder()
+	print "start Mean Reversion Test"
+	df_mean_reversion = portfolio.doMeanReversionTest('price_close',current_date,100,30)
+
+	df_rank = portfolio.rankMeanReversion(df_mean_reversion)
+	mean_reversion_codes = portfolio.buildUniverse(df_rank,'rank',0.8)
+	#해당날짜의 평균회귀 성향이 높은 주식들만 방향 예측
+	mean_reversion_direction = {'price_date':[],'code':[],'company':[],'target_column':[],'direction':[]}
+
+	for index in range(len(mean_reversion_codes)):
+		mean_reversion_direction['price_date'].append(current_date)
+		mean_reversion_direction['code'].append(mean_reversion_codes['code'].iloc[index])
+		mean_reversion_direction['company'].append(mean_reversion_codes['company'].iloc[index])
+		mean_reversion_direction['target_column'].append(target_column)
+		mean_reversion_direction['direction'].append(portfolio.determineMeanReversionDirection(mean_reversion_codes['code'].iloc[index], target_column, current_date, verbose=True) )
+
+		print 'price_date: %s, code: %s, company: %s, column: %s, direction: %s'%(mean_reversion_direction['price_date'][index], mean_reversion_direction['code'][index], mean_reversion_direction['company'][index], mean_reversion_direction['target_column'][index], mean_reversion_direction['direction'][index] )
+	df_mean_reversion_direction = pd.DataFrame(mean_reversion_direction)
+	dw.updateDirectionsToDB(df_mean_reversion_direction)
+
+
+	#show Hit Ratio
+
+	portfolio.showHitRatio(dr.loadDirectionsByCode(103140),target_column)
+
+
+
+
+
+	'''
+	testC = {'2010-01-04':'1234' ,'2011-01-01':'2345', '2013-02-02':'4444'}
+	df_testC = pd.DataFrame(testC.items() , columns=['code','company'])
+	print df_testC.loc[0]
+	print df_testC['2010-01-04']
+	print df_testC['2010-01-04':'2013-02-03']
+	'''
+
+	#print pd.read_pickle('samsung2.data')['Close'].shift(5)
+
+finally:
+	end_time = time.time()- start_time
+	print "---------------- 수행 시간 ----------------"
+	print time.strftime("%H시간: %M분 :%S초 소요",end_time)

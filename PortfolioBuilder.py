@@ -7,14 +7,16 @@ from DataReadWriter import DataReader
 import pandas as pd
 import numpy as np
 import datetime
-
+from pandas.tools.plotting import scatter_matrix, autocorrelation_plot
+import matplotlib.pyplot as plt
 class PortfolioBuilder:
 
 	def __init__(self):
 		self.dbreader = DataReader()
 		self.mean_reversion_model = MeanReversionModel() 
+		#시간이 모자라서 머신러닝 파트는  구현 못할 듯.
 		#self.machine_learning_model = MachineLearningModel() 
-
+	
 	#평균회귀 성향을 파악하고, 결과냄.
 	#column : 원하는 column으로 검사 진행. ex) price_close
 	# adf_1,5,10 : 기각값 1,5,10 인 adf
@@ -46,11 +48,8 @@ class PortfolioBuilder:
 			if( target_index >= len(a_df)):
 				target_index = len(a_df)-1
 			a_df = a_df.iloc[0:target_index+1]
-			print a_df
+			#print a_df
 			a_df_column = a_df[column]
-			
-			
-
 
 			#print a_df_column
 			if a_df_column.shape[0]>0 :
@@ -137,11 +136,66 @@ class PortfolioBuilder:
 		
 		return 0
 
+	#얼마나 맞췄는지 파악함. 해당 주식의 방향 맞춘다.
+	def showHitRatio(self, df_directions, target_column, start_date="2016-01-01", end_date ="2016-11-24"):
+		
+		count_true = 0
+		count_false = 0
+		print "df_directions              asdfasdfadsf"
+		print df_directions
+		df_prices = self.dbreader.loadPrices(df_directions.iloc[0]['code']) #어차피 모든 녀석 code가 같다.
+		
+		date_list = df_directions['price_date'].values.tolist()
+		print date_list
+		#index_list =df_directions['price_date'][df_directions['price_date']== '2015-11-20'].index.tolist()
+
+		for a_date_long in date_list:
+			#long타입 날짜 를 변환함.
+			a_converted_date_long = a_date_long/1000000000		
+			a_datetime =datetime.datetime.fromtimestamp(a_converted_date_long)
+			a_date = a_datetime.strftime("%Y-%m-%d")
+			
+			i = df_prices['date'][df_prices['date']== a_date].index.tolist()[0]
+			i_direction = df_directions['price_date'][df_directions['price_date']==a_date].index.tolist()[0]
+			print i
+			print df_prices.iloc[i]['date']
+			print i_direction
+
+			if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] > 0 and df_directions.iloc[i_direction]['direction']=='HOLD' :
+				count_true+=1
+			if  df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] <= 0 and df_directions.iloc[i_direction]['direction']=='HOLD' :				
+				count_false+=1
+			if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] >= 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
+				count_false+=1
+			if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] < 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
+				count_true+=1
 	
+		print "count_true : %s, count_false : %s"%(count_true, count_false)
+		#fig = plt.plot()
+
+		#df_price[target_column].plot()
+		#plt.show()
+		
+		print "show End"
+		
+
+'''
+			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] > 0 and df_directions.iloc[i][target_column]=='HOLD' :
+				count_true+=1
+			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] <= 0 and df_directions.iloc[i][target_column]=='HOLD' :
+				count_false+=1
+			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] >= 0 and df_directions.iloc[i][target_column]=='SHORT' :
+				count_false+=1
+			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] < 0 and df_directions.iloc[i][target_column]=='SHORT' :
+				count_true+=1
+'''				
+
+	
+		
 
 '''
 
-class MessTrader(BaseCollection):
+class MessTrader():
 	def setPortfolio(self, portfolio):
 		self.protfolio = portfolio
 

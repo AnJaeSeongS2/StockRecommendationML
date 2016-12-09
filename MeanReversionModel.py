@@ -4,7 +4,6 @@ import pandas as pd
 import statsmodels.tsa.stattools as tsa
 import numpy as np
 import datetime
-
 HOLD = 'HOLD'
 SHORT = 'SHORT'
 LONG = 'LONG'
@@ -58,15 +57,10 @@ class MeanReversionModel:
 		
 		for i in lags:
 			print '%s %s'% (i, df[i]-mean)
-		
-		print 'Y :'
-		print Y
-
 		print 'mean : %s'%mean
 		print 'max : %s'%np.max(Y)
 		print 'min : %s'%np.min(Y)
 		print s
-		print 'asdfadsfasdfads'
 		print np.log(R/s)
 		poly = np.polyfit(np.log(lags), np.log(R/s), 1)
 		return poly[0]
@@ -119,7 +113,6 @@ class MeanReversionModel:
 			row_index = len(df)-1
 			return DELETED
 
-	
 		current_price = df.iloc[row_index][column]
 			
 		#rolling_mean : 이동평균 window: 이동평균 낼 범위 ex window=5 -> 5개의 값으로 계산.
