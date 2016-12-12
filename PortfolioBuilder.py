@@ -9,6 +9,9 @@ import numpy as np
 import datetime
 from pandas.tools.plotting import scatter_matrix, autocorrelation_plot
 import matplotlib.pyplot as plt
+import sys
+import os
+
 class PortfolioBuilder:
 
 	def __init__(self):
@@ -17,10 +20,15 @@ class PortfolioBuilder:
 		#시간이 모자라서 머신러닝 파트는  구현 못할 듯.
 		#self.machine_learning_model = MachineLearningModel() 
 	
+	def getIndexsDateTime(self, series_DateTime, dateTime):
+		return series_DateTime[series_DateTime == dateTime].index
+		
+
+
 	#평균회귀 성향을 파악하고, 결과냄.
 	#column : 원하는 column으로 검사 진행. ex) price_close
 	# adf_1,5,10 : 기각값 1,5,10 인 adf
-	def doMeanReversionTest(self, column, target_date,lags_count=100 ,code_count_limit =30):
+	def doMeanReversionTest(self, column, target_date,end_date,lags_count=100 ,code_count_limit =0):
 		#rows_code = self.dbreader.loadCodes(limit = self.config.get('data_limit'))
 		rows_code = self.dbreader.loadCodes(market_type = 1, limit= code_count_limit)
 
@@ -28,46 +36,64 @@ class PortfolioBuilder:
 		test_result = {'code':[],'company':[], 'adf_statistic':[], 'adf_1':[], 'adf_5':[], 'adf_10':[], 'hurst':[], 'halflife':[]}
 		a_index = 1
 
-		for a_index in range(0,len(rows_code)) :
-			
-			code = rows_code.iloc[a_index][0]
-			company = rows_code.iloc[a_index][1]
-			print "... %s of %s : Testing Mean Reversion Model %s on %s %s " % (a_index, len(rows_code), target_date, code, company)
-			a_df = self.dbreader.loadPrices(code)
-			target_index = 0
-			target_datetime = datetime.datetime.strptime(target_date, "%Y-%m-%d")
+		target_datetime = datetime.datetime.strptime(target_date, "%Y-%m-%d")		
+		
+		#next_date 변수 변경값 갱신 잘해줘야함.
+		next_date ="2016-12-31"
+		if(os.path.isfile("stockTestedData/%s(limit=%s).data"%(target_date, code_count_limit))):
+			return pd.read_pickle("stockTestedData/%s(limit=%s).data"%(target_date, code_count_limit)), next_date
+		else:
+			for a_index in range(0,len(rows_code)) :
+				code = rows_code.iloc[a_index][0]
+				company = rows_code.iloc[a_index][1]
+				print "... %s of %s : Testing Mean Reversion Model %s on %s %s " % (a_index, len(rows_code), target_date, code, company)
+				a_df = self.dbreader.loadPrices(code)
+				target_index = 0
 				
-			# a_df를 검사를 원하는 날짜 폭으로 df변환.	
-			for a in range(len(a_df)):
-				if a_df['date'].iloc[target_index] >= target_datetime :
-					if a_df['date'].iloc[target_index] >target_datetime:
-							target_index-=1
-					break
-				target_index+=1
-			
-			if( target_index >= len(a_df)):
-				target_index = len(a_df)-1
-			a_df = a_df.iloc[0:target_index+1]
-			#print a_df
-			a_df_column = a_df[column]
-
-			#print a_df_column
-			if a_df_column.shape[0]>0 :
-				test_result['code'].append(code)
-				test_result['company'].append(company)
-				test_result['hurst'].append(self.mean_reversion_model.calcHurstExponent(a_df_column, lags_count))
-				test_result['halflife'].append(self.mean_reversion_model.calcHalfLife(a_df_column))
-				adf_statistic, adf_1, adf_5, adf_10= self.mean_reversion_model.calcADF(a_df_column)
+				print a_df
+				# a_df를 검사를 원하는 날짜 폭으로 df변환.	
+				for a in range(len(a_df)):
+					if a_df['date'].iloc[target_index] >= target_datetime :
+						if a_df['date'].iloc[target_index] >target_datetime:
+								target_index-=1
+						break
+					target_index+=1
 				
-				test_result['adf_statistic'].append(adf_statistic)
-				test_result['adf_1'].append(adf_1)
-				test_result['adf_5'].append(adf_5)
-				test_result['adf_10'].append(adf_10)
+				if( target_index >= len(a_df)):
+					target_index = len(a_df)-1
+				a_df = a_df.iloc[0:target_index+1]
 			
-			a_index+=1
+				print "target_index = %s"%target_index
+				a_df_column = a_df[column]
+				if(a_index == 0):
+					if(target_index+1 < len(a_df)):
+						next_date = a_df['date'].iloc[target_index+1]
 
-		df_result = pd.DataFrame(test_result)
-		return df_result
+				#print a_df_column
+				if a_df_column.shape[0]>0 :
+					try:
+						adf_statistic, adf_1, adf_5, adf_10= self.mean_reversion_model.calcADF(a_df_column)	
+						hurst = self.mean_reversion_model.calcHurstExponent(a_df_column,lags_count)
+						halflife = self.mean_reversion_model.calcHalfLife(a_df_column)
+						print "adf_statistic: %s, adf_1기각값: %s, adf_5기각값: %s, adf_10기각값: %s" %(adf_statistic,adf_1,adf_5,adf_10) 
+						print "hurst exponent: %s, half life: %s" %(hurst,halflife)
+							
+						test_result['code'].append(code)
+						test_result['company'].append(company)
+						test_result['hurst'].append(hurst)
+						test_result['halflife'].append(halflife)	
+						test_result['adf_statistic'].append(adf_statistic)
+						test_result['adf_1'].append(adf_1)
+						test_result['adf_5'].append(adf_5)
+						test_result['adf_10'].append(adf_10)
+					except :
+						print "except in MeanReversionModels' calc"
+						print sys.exc_info()[0]
+				
+				a_index+=1
+			df_result = pd.DataFrame(test_result)
+			df_result.to_pickle("stockTestedData/%s(limit=%s).data"%(target_date, code_count_limit))
+			return df_result, next_date
 
 	def determineMeanReversionDirection(self, code, column, row_date, verbose=False):
 		df_price = self.dbreader.loadPrices(code)
@@ -137,17 +163,19 @@ class PortfolioBuilder:
 		return 0
 
 	#얼마나 맞췄는지 파악함. 해당 주식의 방향 맞춘다.
-	def showHitRatio(self, df_directions, target_column, start_date="2016-01-01", end_date ="2016-11-24"):
+	def showHitRatio(self, df_directions, target_column, start_date="2016-01-01", end_date ="2016-12-10"):
 		
 		count_true = 0
 		count_false = 0
+		count_all = 0
 		print target_column
 		print df_directions
 		
 		df_prices = self.dbreader.loadPrices(df_directions.iloc[0]['code'])
-		
+		print df_prices
 		date_list = df_directions['price_date'].values.tolist()
-		#print date_list
+		
+		print date_list
 		#index_list =df_directions['price_date'][df_directions['price_date']== '2015-11-20'].index.tolist()
 
 		for a_date_long in date_list:
@@ -156,11 +184,12 @@ class PortfolioBuilder:
 			a_datetime =datetime.datetime.fromtimestamp(a_converted_date_long)
 			a_date = a_datetime.strftime("%Y-%m-%d")
 			do_flag = True;
-			print df_prices['date']
+		
+			#make do_flag
 			for index in range(0,len(df_prices['date'])):
-				if(df_prices['date'] == a_date):
+				if(df_prices['date'].iloc[index] == a_date):
 					break;
-				if(index == len(df_prces['date'])-1):
+				if(index == len(df_prices['date'])-1):
 					do_flag= False;
 			if(do_flag):
 				i = df_prices['date'][df_prices['date']== a_date].index.tolist()[0]
@@ -168,7 +197,7 @@ class PortfolioBuilder:
 				#print i
 				#print df_prices.iloc[i]['date']
 				#print i_direction
-
+				
 				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] > 0 and df_directions.iloc[i_direction]['direction']=='LONG' :
 					count_true+=1
 				if  df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] <= 0 and df_directions.iloc[i_direction]['direction']=='LONG' :				

@@ -7,17 +7,6 @@ from pandas_datareader._utils import RemoteDataError
 
 
 
-
-def downloadStockData(file_name,  code, dateTime1, dateTime2):
-
-	df = web.DataReader("%s.KS" % (code), "yahoo", dateTime1, dateTime2)
-	df.to_pickle(file_name)
-	return df
-
-
-
-
-
 #Item자체가 가지는 4가지 속성을 가짐
 # market_type(marketBit) : 주식종목 1==거래소 2==코스닥 , code : 6자리주식코드 , full_code : 12자리주식코드 company : 회사이름
 class StockCodeItem:
@@ -71,10 +60,23 @@ class StockCode:
 		for a_option in options:
 			if len(a_option)==0:
 				continue #잘못 된 값은 무시
-			code = a_option.text[1:7]
-			company = a_option.text[8:]
+			text =a_option.text
+			i_code1 = text.find('(')
+			i_code2 = text.find(')')
+			code = a_option.text[i_code1:i_code2]
+			company = a_option.text[i_code2+1:]
 			full_code = a_option.get('value')
-			self.addItem(market_type, code, full_code, company)
-
+			
+			#크롤링 해오는 게 폐지안된 주식주식만 add
+			if( company.rfind('(폐지)')!= -1):
+				self.addItem(market_type, code, full_code, company)
 		return self
+
+	#주식 종목코드(code)로 yahoo에서 주식일일거래데이터 가져옴.
+	def downloadPrice(file_name,  code, dateTime1, dateTime2):
+
+		df = web.DataReader("%s.KS" % (code), "yahoo", dateTime1, dateTime2)
+		df.to_pickle(file_name)
+		return df
+
 
