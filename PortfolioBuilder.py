@@ -50,7 +50,7 @@ class PortfolioBuilder:
 				a_df = self.dbreader.loadPrices(code)
 				target_index = 0
 				
-				print a_df
+				#print a_df
 				# a_df를 검사를 원하는 날짜 폭으로 df변환.	
 				for a in range(len(a_df)):
 					if a_df['date'].iloc[target_index] >= target_datetime :
@@ -125,16 +125,26 @@ class PortfolioBuilder:
 		#백분위수 0, 10, ... , 100에 해당하는 column값
 		percentile_column = np.percentile(df_mean_reversion[column], np.arange(0,100,10))
 		ratio_index = np.trunc(ratio * (len(percentile_column)))
-		universe = {}
+		#universe = {}
+		
+		seriesCode = pd.Series(name ='code')
+		seriesCompany = pd.Series(name ='company')
+		seriesRankScore = pd.Series(name = 'rank_score')
+
 
 		#가진 날자 동안 진행.
+		index =0
 		for row_index in range(df_mean_reversion.shape[0]) :
 			percentile_index = self.getPercentileIndex(percentile_column, df_mean_reversion.loc[row_index,column])
 			if percentile_index >= ratio_index:
-				universe[df_mean_reversion.loc[row_index,'code']] = df_mean_reversion.loc[row_index,'company']
+				seriesCode = seriesCode.set_value(index,df_mean_reversion['code'][row_index])
+				seriesCompany = seriesCompany.set_value(index,df_mean_reversion['company'][row_index])
+				seriesRankScore = seriesRankScore.set_value(index,df_mean_reversion['rank'][row_index])
+				index+=1
+				#universe[df_mean_reversion.loc[row_index,'code']] = df_mean_reversion.loc[row_index,'company']
 
-		return pd.DataFrame(universe.items(), columns=['code','company'])
-	
+		#return pd.DataFrame(universe.items(), columns=['code','company','rank_score'])
+		return pd.concat([seriesCode, seriesCompany, seriesRankScore], axis=1)
 	def getPercentileIndex( self, percentile , target):
 		for a_index in range(len(percentile)-1, -1, -1):
 			if percentile[a_index]<= target :
@@ -167,15 +177,13 @@ class PortfolioBuilder:
 		
 		count_true = 0
 		count_false = 0
-		count_all = 0
-		print target_column
-		print df_directions
 		
+		print "특정 주식의 동향표"
+		print df_directions	
 		df_prices = self.dbreader.loadPrices(df_directions.iloc[0]['code'])
+		print "해당 주식의 일일거래표"
 		print df_prices
 		date_list = df_directions['price_date'].values.tolist()
-		
-		print date_list
 		#index_list =df_directions['price_date'][df_directions['price_date']== '2015-11-20'].index.tolist()
 
 		for a_date_long in date_list:
@@ -184,10 +192,14 @@ class PortfolioBuilder:
 			a_datetime =datetime.datetime.fromtimestamp(a_converted_date_long)
 			a_date = a_datetime.strftime("%Y-%m-%d")
 			do_flag = True;
-		
+			
+			print date_list
+			print a_date
+			
 			#make do_flag
 			for index in range(0,len(df_prices['date'])):
-				if(df_prices['date'].iloc[index] == a_date):
+				
+				if((df_prices['date']== a_date).any()):
 					break;
 				if(index == len(df_prices['date'])-1):
 					do_flag= False;
@@ -197,7 +209,8 @@ class PortfolioBuilder:
 				#print i
 				#print df_prices.iloc[i]['date']
 				#print i_direction
-				
+				print "diff price :%s"%(df_prices.iloc[i+1][target_column] - df_prices.iloc[i][target_column])
+				print "direction :%s"%df_directions.iloc[i_direction]['direction']
 				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] > 0 and df_directions.iloc[i_direction]['direction']=='LONG' :
 					count_true+=1
 				if  df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] <= 0 and df_directions.iloc[i_direction]['direction']=='LONG' :				
@@ -214,7 +227,7 @@ class PortfolioBuilder:
 		else :
 			print " Correct Ratio: %s, all_count: %s,  code: %s, target_column: %s "%(round(float(count_true)/1,2) , (count_true+count_false) ,  df_directions.iloc[0]['code'],target_column )
 		
-		return df_directions.iloc[0]['code'], df_directions.iloc[0]['company'], target_column, count_true, count_false, count_all
+		return df_directions.iloc[0]['code'], df_directions.iloc[0]['company'], target_column, count_true, count_false, (count_true+count_false)
 
 		#fig = plt.plot()
 
