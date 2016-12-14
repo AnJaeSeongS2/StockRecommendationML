@@ -7,8 +7,8 @@ from DataReadWriter import DataReader
 import pandas as pd
 import numpy as np
 import datetime
-from pandas.tools.plotting import scatter_matrix, autocorrelation_plot
-import matplotlib.pyplot as plt
+#from pandas.tools.plotting import scatter_matrix, autocorrelation_plot
+#import matplotlib.pyplot as plt
 import sys
 import os
 
@@ -173,35 +173,35 @@ class PortfolioBuilder:
 		return 0
 
 	#얼마나 맞췄는지 파악함. 해당 주식의 방향 맞춘다.
-	def showHitRatio(self, df_directions, target_column, start_date="2016-01-01", end_date ="2016-12-10"):
+	def showHitRatio(self, df_directions, target_column, start_date="2016-01-04", end_date ="2016-12-10", diff_index= 1):
 		
 		count_true = 0
 		count_false = 0
-		
+
+		#매매 상황에서 항상 100000만원어치 를 구매했다고 가정.
+		money_diff = 0
+
 		print "특정 주식의 동향표"
 		print df_directions	
 		df_prices = self.dbreader.loadPrices(df_directions.iloc[0]['code'])
-		print "해당 주식의 일일거래표"
-		print df_prices
+			
 		date_list = df_directions['price_date'].values.tolist()
-		#index_list =df_directions['price_date'][df_directions['price_date']== '2015-11-20'].index.tolist()
-
+		#print df_prices	
 		for a_date_long in date_list:
 			#long타입 날짜 를 변환함.
 			a_converted_date_long = a_date_long/1000000000		
 			a_datetime =datetime.datetime.fromtimestamp(a_converted_date_long)
 			a_date = a_datetime.strftime("%Y-%m-%d")
 			do_flag = True;
-			
-			print date_list
-			print a_date
-			
+				
 			#make do_flag
 			for index in range(0,len(df_prices['date'])):
 				
 				if((df_prices['date']== a_date).any()):
 					break;
 				if(index == len(df_prices['date'])-1):
+					print "date : %s "%a_date
+					print "this date's price data is not exist"
 					do_flag= False;
 			if(do_flag):
 				i = df_prices['date'][df_prices['date']== a_date].index.tolist()[0]
@@ -209,67 +209,34 @@ class PortfolioBuilder:
 				#print i
 				#print df_prices.iloc[i]['date']
 				#print i_direction
-				print "diff price :%s"%(df_prices.iloc[i+1][target_column] - df_prices.iloc[i][target_column])
-				print "direction :%s"%df_directions.iloc[i_direction]['direction']
-				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] > 0 and df_directions.iloc[i_direction]['direction']=='LONG' :
-					count_true+=1
-				if  df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] <= 0 and df_directions.iloc[i_direction]['direction']=='LONG' :				
-					count_false+=1
-				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] >= 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
-					count_false+=1
-				if df_prices.iloc[i+1][target_column] -df_prices.iloc[i][target_column] < 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
-					count_true+=1
+				value_mul = float(100000)/df_prices.iloc[i][target_column]
+				i_future = i+diff_index
+				if( i+diff_index>= len(df_prices['date'])):
+					i_future = len(df_prices['date'])-1
+			
+				diff = df_prices.iloc[i_future][target_column] -df_prices.iloc[i][target_column] 
+				print "date : %s"%df_directions.iloc[i_direction]['price_date'].strftime("%Y-%m-%d")
+				print "diff price: %s, direction: %s"%((diff),df_directions.iloc[i_direction]['direction'])
 
+				if diff> 0 and df_directions.iloc[i_direction]['direction']=='LONG' :
+					money_diff +=int(float(diff)*value_mul)
+					count_true+=1
+				if diff <= 0 and df_directions.iloc[i_direction]['direction']=='LONG' :				
+					money_diff +=int(float(diff)*value_mul)
+					count_false+=1
+				if diff >= 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
+					money_diff -=int(float(diff)*value_mul)
+					count_false+=1
+				if diff < 0 and df_directions.iloc[i_direction]['direction']=='SHORT' :
+					money_diff -=int(float(diff)*value_mul)
+					count_true+=1
+				
 
 		if( count_true+count_false >0):	
 		
-			print " Correct Ratio: %s, all_count: %s,  code: %s, target_column: %s "%(round(float(count_true)/(count_true+count_false),2) , (count_true+count_false) ,  df_directions.iloc[0]['code'],target_column )
+			print " Correct Ratio: %s, all_count: %s, money_diff: %s, code: %s, target_column: %s "%(round(float(count_true)/(count_true+count_false),2) , (count_true+count_false) ,money_diff,  df_directions.iloc[0]['code'],target_column )
 		else :
-			print " Correct Ratio: %s, all_count: %s,  code: %s, target_column: %s "%(round(float(count_true)/1,2) , (count_true+count_false) ,  df_directions.iloc[0]['code'],target_column )
+			print " Correct Ratio: %s, all_count: %s, money_diff: %s, code: %s, target_column: %s "%(round(float(count_true)/1,2) , (count_true+count_false) , money_diff, df_directions.iloc[0]['code'],target_column )
 		
-		return df_directions.iloc[0]['code'], df_directions.iloc[0]['company'], target_column, count_true, count_false, (count_true+count_false)
-
-		#fig = plt.plot()
-
-		#df_price[target_column].plot()
-		#plt.show()
-		
-		#print "show End"
-		
-
-'''
-			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] > 0 and df_directions.iloc[i][target_column]=='HOLD' :
-				count_true+=1
-			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] <= 0 and df_directions.iloc[i][target_column]=='HOLD' :
-				count_false+=1
-			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] >= 0 and df_directions.iloc[i][target_column]=='SHORT' :
-				count_false+=1
-			if df_prices.loc[df_directions.iloc[i+1]['price_date']][target_column] -df_prices.loc[df_directions.iloc[i]['price_date']][target_column] < 0 and df_directions.iloc[i][target_column]=='SHORT' :
-				count_true+=1
-'''				
-
-	
-		
-
-'''
-
-class MessTrader():
-	def setPortfolio(self, portfolio):
-		self.protfolio = portfolio
-
-	def add(self, model, code, row_index, position):
-		if self.find(code) is None:
-			self.items[code] = []
-
-		a_item = TradeItem(model, code, row_index, position)
-		self.items[code].append(a_item)
-
-	def dump(self):
-		print "----Portfolio.dump----"
-		for key in self.items.keys():
-			for a_item in self.items[key]:
-				print "... model=%s, code=%s, row_index=%s, position=%s" %(a_item.model, a_item.code, a_item.row_index, a_item.position)
-			print "----Done----"
-
-'''
+		return df_directions.iloc[0]['code'], df_directions.iloc[0]['company'], target_column, count_true, count_false, (count_true+count_false), money_diff
 

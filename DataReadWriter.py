@@ -97,9 +97,9 @@ class DataReader:
 		return pd.concat([seriesDate, seriesCode, seriesOpen, seriesClose, seriesLow, seriesHigh, seriesAdjClose, seriesVolume], axis=1)
 		
 	#return dataFrame_directions from db
-	def loadDirectionsByCode(self, code, limit=0):
+	def loadDirectionsByCode(self, code, date= '2016-12-07', limit=0):
 		sqlGetCode = "select * from directions"	
-		sqlGetCode += " where code = \"%s\" order by price_date desc"%(code)
+		sqlGetCode += " where code = \"%s\" and price_date<='%s 00:00:00' order by price_date desc"%(code,date)
 		if( limit !=0) :
 			sqlGetCode += " limit %s;"%limit
 		else :
@@ -121,8 +121,12 @@ class DataReader:
 			seriesTargetColumn = seriesTargetColumn.set_value(a_index,rows[a_index][4])
 			seriesDirection = seriesDirection.set_value(a_index,rows[a_index][5])
 			seriesRankScore = seriesRankScore.set_value(a_index, rows[a_index][6])
-		return pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection, seriesRankScore],axis=1)
-		
+
+		df_result = pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection, seriesRankScore],axis=1)			
+		#df_result = df_result.sort_values(by= 'rank_score', ascending =False)
+		#df_result = df_result.reset_index(drop ='True')
+		return df_result
+	
 	#return dataFrame_directions from db
 	def loadDirectionsByDate(self, date, limit=0):
 		sqlGetCode = "select * from directions"	
@@ -148,8 +152,12 @@ class DataReader:
 			seriesTargetColumn = seriesTargetColumn.set_value(a_index,rows[a_index][4])
 			seriesDirection = seriesDirection.set_value(a_index,rows[a_index][5])
 			seriesRankScore = seriesRankScore.set_value(a_index,rows[a_index][6])
-		return pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection, seriesRankScore],axis=1)
 
+		df_result = pd.concat([seriesDate, seriesCode, seriesCompany, seriesTargetColumn, seriesDirection, seriesRankScore],axis=1)			
+		#df_result = df_result.sort_values(by= 'rank_score', ascending =False)
+		#df_result = df_result.reset_index(drop ='True')
+		return df_result
+	
 	def loadTopCountPrediction(self, limit=0):
 		sqlGetCount = "select * from countPrediction"
 		sqlGetCount += " order by count_all DESC"
@@ -168,7 +176,7 @@ class DataReader:
 		seriesCountTrue = pd.Series(name='count_true')
 		seriesCountFalse = pd.Series(name='count_false')
 		seriesCountAll = pd.Series(name='count_all')
-		
+		seriesMoneyDiff = pd.Series(name='money_diff')
 		for a_index in range(0,len(rows)):
 			seriesCode = seriesCode.set_value(a_index,rows[a_index][1])
 			seriesCompany= seriesCompany.set_value(a_index,rows[a_index][2])
@@ -176,9 +184,13 @@ class DataReader:
 			seriesCountTrue = seriesCountTrue.set_value(a_index,rows[a_index][4])
 			seriesCountFalse = seriesCountFalse.set_value(a_index,rows[a_index][5])
 			seriesCountAll = seriesCountAll.set_value(a_index,rows[a_index][6])
-				
-		return pd.concat([ seriesCode, seriesCompany, seriesTargetColumn, seriesCountTrue, seriesCountFalse, seriesCountAll],axis=1)
-
+			seriesMoneyDiff = seriesMoneyDiff.set_value(a_index, rows[a_index][7])	
+		
+		
+		df_result =pd.concat([ seriesCode, seriesCompany, seriesTargetColumn, seriesCountTrue, seriesCountFalse, seriesCountAll, seriesMoneyDiff],axis=1)
+		df_result = df_result.sort_values(by='count_all', ascending=0)
+		df_result = df_result.reset_index(drop='True')
+		return df_result
 	
 		
 class DataWriter:
@@ -302,8 +314,8 @@ class DataWriter:
 			# INSERT
 			#DB로 전송
 			for i in range(0,df_prediction.shape[0]):
-				sqlAddPrediction = """insert into countPrediction (last_update,  code, company, target_column, count_true, count_false, count_all) values (now(), %s, %s, %s , %s,%s,%s) ON DUPLICATE KEY UPDATE last_update = now(), target_column= %s, count_true = %s, count_false = %s , count_all = %s"""
-				dataPrediction = ( df_prediction.iloc[i]['code'], df_prediction.iloc[i]['company'],df_prediction.iloc[i]['target_column'], df_prediction.iloc[i]['count_true'] ,df_prediction.iloc[i]['count_false'], df_prediction.iloc[i]['count_all'] ,df_prediction.iloc[i]['target_column'], df_prediction.iloc[i]['count_true'] ,df_prediction.iloc[i]['count_false'], df_prediction.iloc[i]['count_all']  )
+				sqlAddPrediction = """insert into countPrediction (last_update,  code, company, target_column, count_true, count_false, count_all, money_diff) values (now(), %s, %s, %s , %s,%s,%s,%s) ON DUPLICATE KEY UPDATE last_update = now(), target_column= %s, count_true = %s, count_false = %s , count_all = %s , money_diff =%s"""
+				dataPrediction = ( df_prediction.iloc[i]['code'], df_prediction.iloc[i]['company'],df_prediction.iloc[i]['target_column'], df_prediction.iloc[i]['count_true'] ,df_prediction.iloc[i]['count_false'], df_prediction.iloc[i]['count_all'] ,df_prediction.iloc[i]['money_diff'],df_prediction.iloc[i]['target_column'], df_prediction.iloc[i]['count_true'] ,df_prediction.iloc[i]['count_false'], df_prediction.iloc[i]['count_all'] , df_prediction.iloc[i]['money_diff'] )
 			
 				print dataPrediction
 				self.cursor.execute(sqlAddPrediction, dataPrediction)

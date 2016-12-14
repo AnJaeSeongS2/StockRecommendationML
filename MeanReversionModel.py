@@ -114,7 +114,7 @@ class MeanReversionModel:
 			return DELETED
 
 		current_price = df.iloc[row_index][column]
-			
+		
 		#rolling_mean : 이동평균 window: 이동평균 낼 범위 ex window=5 -> 5개의 값으로 계산.
 		df_moving_average = df.iloc[0:row_index+1][column].rolling(window= self.window_size).mean()
 		df_moving_average_std = df.iloc[0:row_index+1][column].rolling(window= self.window_size).std()

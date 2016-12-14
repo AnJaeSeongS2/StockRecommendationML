@@ -17,15 +17,8 @@ try:
 	dw = DataWriter()
 	dr = DataReader()
 
-	#해당날짜의 평균회귀 성향 확인
-	current_date = '2016-01-04'
-	next_date = '2016-01-05'
-	end_date = '2016-12-07'
 	target_column = 'price_close'
 	limit = 0
-	#get index from dataframe with column, value
-	#print dr.loadDirectionsByDate(current_date)['price_date'][dr.loadDirectionsByDate(current_date)['price_date'] == '2015-11-20'].index.tolist()[0]
-
 	portfolio = PortfolioBuilder()
 
 	#show Hit Ratio and save Correct Ratio, count True,False,All
@@ -36,13 +29,18 @@ try:
 	seriesCountTrue = pd.Series(name='count_true')
 	seriesCountFalse = pd.Series(name='count_false')
 	seriesCountAll = pd.Series(name='count_all')
-
+	seriesMoneyDiff = pd.Series(name='money_diff')
+	
+	input_date =raw_input( "create Prediction with using directions (2016-01-04 ~ xxxx-xx-xx) : input xxxx-xx-xx :")
+	# 7 : 9일, 25 : 35일:
+	diff_i =input("구매한 주식을 보유하고 있을 day숫자를 입력하시오.input diff_day for Prediction :")	
+	
 	index = 0
 	for a in range(len(codes)):
 		#show Hit Ratio
-		df_direction = dr.loadDirectionsByCode(codes.iloc[a]['code'] )
+		df_direction = dr.loadDirectionsByCode(codes.iloc[a]['code'] , input_date)
 		if (df_direction.empty ==False) :
-			c_code, c_company, c_target_column,c_count_true,c_count_false,c_count_all =portfolio.showHitRatio(df_direction,target_column)
+			c_code, c_company, c_target_column,c_count_true,c_count_false,c_count_all,c_money_diff =portfolio.showHitRatio(df_direction,target_column,diff_index=diff_i)
 			#맞는 날짜값이 없으면 c_code=0으로 돌려줌	
 			#print "c_code = %s" %c_code
 			if( len(c_code) >= 6):
@@ -52,14 +50,13 @@ try:
 				seriesCountTrue = seriesCountTrue.set_value(index,c_count_true)
 				seriesCountFalse = seriesCountFalse.set_value(index,c_count_false)
 				seriesCountAll = seriesCountAll.set_value(index,c_count_all)
+				seriesMoneyDiff = seriesMoneyDiff.set_value(index,c_money_diff)
 				#print "len(c_code)>=6 activate c_code =%s"%c_code
 				index+=1
-	df_count = pd.concat([seriesCode, seriesCompany,seriesTargetColumn, seriesCountTrue, seriesCountFalse, seriesCountAll],axis=1)
+	df_count = pd.concat([seriesCode, seriesCompany,seriesTargetColumn, seriesCountTrue, seriesCountFalse, seriesCountAll , seriesMoneyDiff],axis=1)
 	print df_count
 	df_count.to_pickle("stockPredictionData/predictionData.data")
 	dw.updatePredictionToDB(df_count)
-	current_date = next_date
-
 finally:
 	end_time = time.time()- start_time
 	print "---------------- 수행 시간(초)----------------"
