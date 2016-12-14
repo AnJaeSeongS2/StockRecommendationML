@@ -1,6 +1,6 @@
 # Stock Prediction
 # 0. DB가 없으면 실행이 안됩니다... DataReadWriter.py내부의 db.connect부분이 개발자에 맞춰져 있습니다.
-# 1. tensorflow를 실행하시고 python으로 작성한 실행파일들을 실행합니다. 
+# 1. tensorflow와 python2.7을 설치하여 tensorflow를  실행하시고 python으로 작성한 실행파일들을 실행합니다. 
 # 2. 주식데이터를 갱신해주려면 $python runDownloadStockData.py 실행을 해서 Koscom에서 상장회사 정보를, yahoo Finance에서 일일 주가데이터를 가져옵니다.
 # 3. 평균회귀 성향을 계산하려면 $python runCheckMeanReversion.py 실행을 해서 DB에 저장된 주식데이터로 평균회귀성향을 계산한 뒤 DB에 예측한 동향을 저장합니다.
 # 4. 동향을 바탕으로 모의투자 결과를 계산하려면 $python runCreateStockPrediction.py 실행을 해서 DB에 모의투자 결과로 적중횟수를 저장합니다.
